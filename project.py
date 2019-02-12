@@ -7,7 +7,6 @@ import sys
 def energy_potential(p1,p2):
     '''
     Method calculating the potential energy between 2 Particle3D objects.
-
     :param p1: Particle 3D object
     :param p2: Particle 3D object
     :return: potential energy (float)
@@ -22,7 +21,6 @@ def gravitational_force(p1,p2):
     '''
     Method calculating the gravitational force vector
     between 2 Particle3D objects.
-
     :param p1: Particle 3D object
     :param p2: Particle 3D object
     :return: force vector (Numpy array)
@@ -40,7 +38,6 @@ def update_velocity (objects, dt, force_old, force_new):
     '''
     Method updates velocity of all Particle3D objects in a list using
     the velocity Verlet method.
-
     :param objects: list of Particle3D objects
     :param dt: time step (float)
     :param force_old: list of previous force vectors (Numpy arrays)
@@ -62,7 +59,6 @@ def energy_total (objects):
     '''
     Method calculating the total energy of the system.
     Total = Potential + Kinetic
-
     :param objects:
     '''
 
@@ -97,15 +93,13 @@ def com_corr (objects):
 
 
 
-def trajectory (objects):
+def trajectory (objects, file, p_curr, p_tot):
 
-    trajectory = []
+    file.write(str(p_tot) + "\n")
+    file.write("Point = " + str(p_curr) + "\n")
 
     for i in range (0, len(objects)):
-        trajectory.append(objects[i].__str__())
-
-    return trajectory
-
+        file.write(objects[i].__str__() + "\n")
 
 
 
@@ -116,25 +110,59 @@ def main():
 
     if len(sys.argv)!=3:
         print("Wrong number of arguments.")
-        print("Usage: " + sys.argv[0] + "<input file>"+ "<output file>")
+        print("Usage: " + sys.argv[0] + "<input file>" + "<trajectory file>")
         quit()
     else:
         infile_name = sys.argv[1]
-        outfile = sys.argv[2]
-        
-        infile = open(infile_name, "r")
+        outfile_name = sys.argv[2]
+
+    infile = open(infile_name, "r")
+    traj_file = open(outfile_name, "w")
 
     dt = 1
 
     list = []
+    force = []
+
+    force_sum = np.array([0, 0, 0], float)
+    force_old = np.array([0, 0, 0], float)
 
     list.append(Particle3D.create_particle(infile))
     list.append(Particle3D.create_particle(infile))
     list.append(Particle3D.create_particle(infile))
+    
 
+    for j in range (0, len(list)):
+        for k in range (0, len(list)):
+            if k != j:
+                force_old = force_old + gravitational_force(list[j], list[k])
+        force.append(force_old)
+
+    for i in range (0, 5):
+        trajectory (list, traj_file, i+1, 5)
+
+        update_position(list, dt)
+
+        for j in range (0, len(list)):
+            for k in range (0, len(list)):
+                if k != j:
+                    force_sum = force_sum + gravitational_force(list[j], list[k])
+
+            force[j] = force_sum
+
+        update_velocity(list, dt, force_old, force)
+
+
+        force_old = force
+
+
+
+
+
+"""
     print("G force" + str(gravitational_force(list[0], list[1])) + "\n")
     print("Position" + str(update_position(list, dt)) + "\n")
     print("energy" + str(energy_total(list)))
     print("traj" + str(trajectory(list)) + "\n")
-
+"""
 main()
