@@ -114,14 +114,15 @@ def trajectory (objects):
 
 def main():
 
-    if len(sys.argv)!=2:
+    if len(sys.argv)!=3:
         print("Wrong number of arguments.")
-        print("Usage: " + sys.argv[0] + "<input file>")
+        print("Usage: " + sys.argv[0] + "<input file>"+ "<output file>")
         quit()
     else:
         infile_name = sys.argv[1]
-
-    infile = open(infile_name, "r")
+        outfile = sys.argv[2]
+        
+        infile = open(infile_name, "r")
 
     dt = 1
 
