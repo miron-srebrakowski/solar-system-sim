@@ -24,27 +24,24 @@ class Particle3D(object) :
         For particle p(1,2,3) this will print as
         "<p><1><2><3>"
         """
-        return  str(self.label) + str(self.position[0]) + str(self.position[1]) + str(self.position[2])
+        return  str(self.label) + " " + str(self.position[0]) + " " + str(self.position[1]) + " " + str(self.position[2])
 
     def kinetic_energy(self) :
         """
         Return kinetic energy as
         1/2*mass*mod.vel^2
-
-        :return: KE as float
         """
         return 0.5*self.mass*(np.linalg.norm(self.velocity))**2
 
     def leap_velocity(self, dt, force) :
         """
         First-order velocity update,
-        v(t+dt) = v(t) + dt*F(t)/mass
+        v(t+dt) = v(t) + dt*F(t)
 
         :param dt: timestep as float
         :param force: force on particle as numpy array
         """
-
-        self.velocity = self.velocity + dt*(force/self.mass)
+        self.velocity = self.velocity*dt*force/self.mass
 
     def leap_pos1st(self, dt) :
         """
@@ -53,7 +50,6 @@ class Particle3D(object) :
 
         :param dt: timestep as float
         """
-
         self.position = self.position + dt*self.velocity
 
     def leap_pos2nd(self, dt, force) :
@@ -66,15 +62,8 @@ class Particle3D(object) :
         """
         self.position = self.position + dt*self.velocity + (dt**2)*force/(2*self.mass)
 
-
     @staticmethod
     def create_particle(file_handle) :
-        """
-        Takes file handle and creates a Particle3D type particle.
-
-        :param file_handle: name of input file
-        :return: Particle3D particle
-        """
         line = file_handle.readline()
         linesplit = line.split(" ")
 
@@ -95,13 +84,4 @@ class Particle3D(object) :
 
     @staticmethod
     def vector_separation(particle1, particle2) :
-        """
-        Computes vector seperation of 2 Particle3D type particles.
-
-        :param particle1: particle as Particle3D object
-        :param particle2: particle as Particle3D object
-        :return: vector seperation of particles as Numpy array
-        """
-        seperation = np.linalg.norm(particle1.position - particle2.position)
-        
-        return seperation
+        return np.linalg.norm(particle1.position - particle2.position)
