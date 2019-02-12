@@ -1,4 +1,4 @@
-from Particle3D import Particle3D
+Particle3D import Particle3D
 import math
 import numpy as np
 import sys
@@ -96,7 +96,7 @@ def com_corr (objects):
 def trajectory (objects, file, p_curr, p_tot):
 
     file.write(str(p_tot) + "\n")
-    file.write("Point = " + str(p_curr) + "\n")
+    file.write("Point = " + str(p_curr) +" " + "\n")
 
     for i in range (0, len(objects)):
         file.write(objects[i].__str__() + "\n")
@@ -123,23 +123,23 @@ def main():
 
     list = []
     force = []
-
+    force_prev=[]
     force_sum = np.array([0, 0, 0], float)
-    force_old = np.array([0, 0, 0], float)
+    force_int = np.array([0, 0, 0], float)
 
     list.append(Particle3D.create_particle(infile))
     list.append(Particle3D.create_particle(infile))
     list.append(Particle3D.create_particle(infile))
-    
+
 
     for j in range (0, len(list)):
         for k in range (0, len(list)):
             if k != j:
-                force_old = force_old + gravitational_force(list[j], list[k])
-        force.append(force_old)
-
-    for i in range (0, 5):
-        trajectory (list, traj_file, i+1, 5)
+                force_int = force_int+ gravitational_force(list[j], list[k])
+        force_prev.append(force_int)
+        force.append(0)
+    for i in range (0, 200):
+        trajectory (list, traj_file, i+1, 3)
 
         update_position(list, dt)
 
@@ -150,15 +150,12 @@ def main():
 
             force[j] = force_sum
 
-        update_velocity(list, dt, force_old, force)
+        update_velocity(list, dt, force_prev, force)
 
+    for i in range(0,len(force)):
+        force[i]=force_prev[i]
 
-        force_old = force
-
-
-
-
-
+    
 """
     print("G force" + str(gravitational_force(list[0], list[1])) + "\n")
     print("Position" + str(update_position(list, dt)) + "\n")
