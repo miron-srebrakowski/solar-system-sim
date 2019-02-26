@@ -1,4 +1,4 @@
-from Particle3Dv2 import Particle3D  as Particle3D
+from Particle3D import Particle3D  as Particle3D
 import math
 import numpy as np
 import sys
