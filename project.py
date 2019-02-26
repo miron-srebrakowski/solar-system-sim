@@ -1,4 +1,4 @@
-Particle3D import Particle3D
+from Particle3Dv2 import Particle3D  as Particle3D
 import math
 import numpy as np
 import sys
@@ -26,9 +26,10 @@ def gravitational_force(p1,p2):
     :return: force vector (Numpy array)
     '''
     sep=Particle3D.vector_separation(p1,p2)
-    force=(-1*p1.mass*p2.mass)/sep**2
+    force=(-1E-53*p1.mass*p2.mass)/sep**2
 
     force_vec=(force/sep)*(p1.position-p2.position)
+
 
     return force_vec
 
@@ -48,12 +49,12 @@ def update_velocity (objects, dt, force_old, force_new):
         objects[i].leap_velocity(dt, 0.5 * (force_old[i] + force_new[i]))
 
 
-def update_position (objects, dt):
+def update_position (objects, dt,force):
     #updates position of all objets in list
 
     for i in range (0, len(objects)):
 
-        objects[i].leap_pos1st(dt)
+        objects[i].leap_pos2nd(dt,force[i])
 
 def energy_total (objects):
     '''
@@ -138,24 +139,30 @@ def main():
                 force_int = force_int+ gravitational_force(list[j], list[k])
         force_prev.append(force_int)
         force.append(0)
-    for i in range (0, 200):
+    for i in range(0,len(force)):
+        force[i]=force_prev[i]
+    print(force)
+    com_corr(list)
+    for i in range (0, 20):
         trajectory (list, traj_file, i+1, 3)
 
-        update_position(list, dt)
+        update_position(list, dt, force)
 
         for j in range (0, len(list)):
             for k in range (0, len(list)):
-                if k != j:
+                if k == j:
+                    force_sum=force_sum
+                else:
                     force_sum = force_sum + gravitational_force(list[j], list[k])
 
-            force[j] = force_sum
 
+            force[j] = force_sum
         update_velocity(list, dt, force_prev, force)
 
     for i in range(0,len(force)):
-        force[i]=force_prev[i]
+        force_prev[i]=force[i]
 
-    
+
 """
     print("G force" + str(gravitational_force(list[0], list[1])) + "\n")
     print("Position" + str(update_position(list, dt)) + "\n")
