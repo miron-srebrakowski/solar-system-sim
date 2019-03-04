@@ -1,4 +1,4 @@
-from Particle3D import Particle3D  as Particle3D
+from Particle3D import Particle3D
 import math
 import numpy as np
 import sys
@@ -25,10 +25,11 @@ def gravitational_force(p1,p2):
     :param p2: Particle 3D object
     :return: force vector (Numpy array)
     '''
-    sep=Particle3D.vector_separation(p1,p2)
-    force=(-1E-53*p1.mass*p2.mass)/sep**2
+    sep = Particle3D.vector_separation(p1,p2)
 
-    force_vec=(force/sep)*(p1.position-p2.position)
+    force = (-39.478*p1.mass*p2.mass)/sep**2
+
+    force_vec = (force/sep)*(p1.position-p2.position)
 
 
     return force_vec
@@ -120,17 +121,19 @@ def main():
     infile = open(infile_name, "r")
     traj_file = open(outfile_name, "w")
 
-    dt = 1
+    dt = 1/365
 
-    list = []
-    force = []
-    force_prev=[]
-    force_sum = np.array([0, 0, 0], float)
-    force_int = np.array([0, 0, 0], float)
+    list = [] #contains the objects.
+    force = [] #contains new forces. [nx3]
+    force_prev=[] #contains previous forces. [nx3]
+    force_sum = np.array([0, 0, 0], float) # used to sum forces for intividual objects [1x3]
+    force_int = np.array([0, 0, 0], float) # initial force on a single object [1x3].
 
-    list.append(Particle3D.create_particle(infile))
-    list.append(Particle3D.create_particle(infile))
-    list.append(Particle3D.create_particle(infile))
+    for i in range (0, 3):
+        list.append(Particle3D.create_particle(infile))
+
+# Calculates the initial Force vector on each object, by summing the gravitational forces
+# between the object and all the other objets in the system, eg. Fsun = Fsv + Fsm.
 
 
     for j in range (0, len(list)):
@@ -139,11 +142,27 @@ def main():
                 force_int = force_int+ gravitational_force(list[j], list[k])
         force_prev.append(force_int)
         force.append(0)
+
+# Sets initial forces to force.
+
     for i in range(0,len(force)):
         force[i]=force_prev[i]
-    print(force)
+
+# Corrects for centre of mass.
+
     com_corr(list)
-    for i in range (0, 20):
+
+
+# Main simulation loop:
+#1) Prints pos & v to traj file
+#2) Updates pos using force (for first time step force = initial force)
+#3) Calculates the sum of forces on each object
+#4) Stores each force sum in force.
+#5) Updates v of each objects with force and previous force of each object
+#6) Sets force to previous force
+
+
+    for i in range (0, 200):
         trajectory (list, traj_file, i+1, 3)
 
         update_position(list, dt, force)
@@ -163,10 +182,4 @@ def main():
         force_prev[i]=force[i]
 
 
-"""
-    print("G force" + str(gravitational_force(list[0], list[1])) + "\n")
-    print("Position" + str(update_position(list, dt)) + "\n")
-    print("energy" + str(energy_total(list)))
-    print("traj" + str(trajectory(list)) + "\n")
-"""
 main()
