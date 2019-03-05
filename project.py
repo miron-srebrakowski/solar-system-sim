@@ -27,7 +27,7 @@ def gravitational_force(p1,p2):
     '''
     sep = Particle3D.vector_separation(p1,p2)
 
-    force = (-39.478*p1.mass*p2.mass)/sep**2
+    force = (-1000*p1.mass*p2.mass)/(sep)**2
 
     force_vec = (force/sep)*(p1.position-p2.position)
 
@@ -136,17 +136,17 @@ def main():
 # between the object and all the other objets in the system, eg. Fsun = Fsv + Fsm.
 
 
-    for j in range (0, len(list)):
-        for k in range (0, len(list)):
-            if k != j:
-                force_int = force_int+ gravitational_force(list[j], list[k])
-        force_prev.append(force_int)
-        force.append(0)
+        for j in range (0, len(list)):
+            for k in range (0, len(list)):
+                if k != j:
+                    force_int = force_int+ gravitational_force(list[j], list[k])
+                force_prev.append(force_int)
+                force.append(0)
 
 # Sets initial forces to force.
 
-    for i in range(0,len(force)):
-        force[i]=force_prev[i]
+        for l in range(0,len(force)):
+            force_prev[l]=force[l]
 
 # Corrects for centre of mass.
 
@@ -168,6 +168,7 @@ def main():
         update_position(list, dt, force)
 
         for j in range (0, len(list)):
+            force_sum=np.array((0,0,0), float) #used to sum forces for individual objects
             for k in range (0, len(list)):
                 if k == j:
                     force_sum=force_sum
@@ -176,10 +177,11 @@ def main():
 
 
             force[j] = force_sum
+
         update_velocity(list, dt, force_prev, force)
 
-    for i in range(0,len(force)):
-        force_prev[i]=force[i]
+        for l in range(0,len(force)):
+            force_prev[l]=force[l]
 
 
 main()
