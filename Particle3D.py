@@ -41,7 +41,7 @@ class Particle3D(object) :
         :param dt: timestep as float
         :param force: force on particle as numpy array
         """
-        self.velocity = self.velocity*dt*force/self.mass
+        self.velocity = self.velocity + dt*force/self.mass
 
     def leap_pos1st(self, dt) :
         """
@@ -84,4 +84,4 @@ class Particle3D(object) :
 
     @staticmethod
     def vector_separation(particle1, particle2) :
-        return np.linalg.norm(particle1.position - particle2.position)
+        return particle1.position - particle2.position
