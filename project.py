@@ -2,155 +2,96 @@ from Particle3D import Particle3D
 import math
 import numpy as np
 import sys
+import matplotlib.pyplot as pyplot
+import functions as f
+import integration
 
 
-def energy_potential(p1,p2):
-    '''
-    Method calculating the potential energy between 2 Particle3D objects.
-    :param p1: Particle 3D object
-    :param p2: Particle 3D object
-    :return: potential energy (float)
-    '''
-    sep=Particle3D.vector_separation(p1,p2)
-    pot=-1*p1.mass*p2.mass/sep
-
-    return pot
-
-
-def gravitational_force(p1,p2):
-    '''
-    Method calculating the gravitational force vector
-    between 2 Particle3D objects.
-    :param p1: Particle 3D object
-    :param p2: Particle 3D object
-    :return: force vector (Numpy array)
-    '''
-    sep = Particle3D.vector_separation(p1,p2)
-
-    force = (-1000*p1.mass*p2.mass)/(sep)**2
-
-    force_vec = (force/sep)*(p1.position-p2.position)
-
-
-    return force_vec
-
-
-
-def update_velocity (objects, dt, force_old, force_new):
-    '''
-    Method updates velocity of all Particle3D objects in a list using
-    the velocity Verlet method.
-    :param objects: list of Particle3D objects
-    :param dt: time step (float)
-    :param force_old: list of previous force vectors (Numpy arrays)
-    :param force_new: list of new force vectors (Numpy arrays)
-    '''
-
-    for i in range (0, len(objects)):
-        objects[i].leap_velocity(dt, 0.5 * (force_old[i] + force_new[i]))
-
-
-def update_position (objects, dt,force):
-    #updates position of all objets in list
-
-    for i in range (0, len(objects)):
-
-        objects[i].leap_pos2nd(dt,force[i])
-
-def energy_total (objects):
-    '''
-    Method calculating the total energy of the system.
-    Total = Potential + Kinetic
-    :param objects:
-    '''
-
-    total = 0
-
-    for i in range (0, len(objects)):
-        e_kin = objects[i].kinetic_energy()
-
-        for j in range (i+1, len(objects)):
-            e_pot = energy_potential(objects[i], objects[j])
-
-
-            e_tot = e_kin + e_pot
-            total = total + e_tot
-
-    return total
-
-def com_corr (objects):
-
-    mv = 0
-    mass = 0
-
-    for i in range (0, len(objects)):
-        mv = mv + (objects[i].mass * objects[i].velocity)
-        mass = mass + objects[i].mass
-
-    v_com = mv/mass
-
-    for i in range (0, len(objects)):
-        objects[i].velocity = objects[i].velocity - v_com
-
-
-
-
-def trajectory (objects, file, p_curr, p_tot):
-
-    file.write(str(p_tot) + "\n")
-    file.write("Point = " + str(p_curr) +" " + "\n")
-
-    for i in range (0, len(objects)):
-        file.write(objects[i].__str__() + "\n")
-
-
-
+"""
+For period calculation takes start point and calculate time each objects
+travels 360 around the sun.
+"""
 
 
 
 def main():
 
-    if len(sys.argv)!=3:
+    #Takes 3 file names from comand line and opens them for use. 1) File with initial conditions of objects (read);
+
+    #2) Trajectory output file (write); 3) System energy output file (write).
+
+
+    if len(sys.argv)!=6:
         print("Wrong number of arguments.")
-        print("Usage: " + sys.argv[0] + "<input file>" + "<trajectory file>")
+        print("Usage: " + sys.argv[0] + "<intial cond file>" + "<trajectory file>" + "<parameter file>" + "<energy file>" + "<observables file>")
         quit()
     else:
-        infile_name = sys.argv[1]
-        outfile_name = sys.argv[2]
+        init_name = sys.argv[1]
+        traj_name = sys.argv[2]
+        param_name = sys.argv[3]
+        energy_name = sys.argv[4]
+        observables_name = sys.argv[5]
 
-    infile = open(infile_name, "r")
-    traj_file = open(outfile_name, "w")
 
-    dt = 1/365
+    infile = open(init_name, "r")
+    traj_file = open(traj_name, "w")
+    param_file = open(param_name, "r")
+    energy_file = open(energy_name, "w")
+    observables_file = open(observables_name, "w")
 
-    list = [] #contains the objects.
+
+    #Time step in days.
+    line = param_file.readline()
+    linesplit = line.split(" ")
+    object_number = int(linesplit[0])
+    dt = float(linesplit[1])
+    steps = int(linesplit[2])
+
+
+    energy_list = [] #contains the system energies at each time step.
+    time_list = [] #contains the time steps.
+    object_list = [] #contains the objects.
+    prev_pos_list = []
+    angle_list = []
+    period_list = []
+
+
     force = [] #contains new forces. [nx3]
     force_prev=[] #contains previous forces. [nx3]
     force_sum = np.array([0, 0, 0], float) # used to sum forces for intividual objects [1x3]
     force_int = np.array([0, 0, 0], float) # initial force on a single object [1x3].
 
-    for i in range (0, 3):
-        list.append(Particle3D.create_particle(infile))
+    for i in range (0, object_number):
+        object_list.append(Particle3D.create_particle(infile))
+        prev_pos_list.append(0)
+
+    for i in range (0, object_number):
+        angle_list.append(0)
+
 
 # Calculates the initial Force vector on each object, by summing the gravitational forces
 # between the object and all the other objets in the system, eg. Fsun = Fsv + Fsm.
 
 
-        for j in range (0, len(list)):
-            for k in range (0, len(list)):
-                if k != j:
-                    force_int = force_int+ gravitational_force(list[j], list[k])
-                force_prev.append(force_int)
-                force.append(0)
+    for j in range (0, len(object_list)):
+        for k in range (0, len(object_list)):
+            if k != j:
+                force_int = force_int + f.gravitational_force(object_list[j], object_list[k])
+            force_prev.append(force_int)
+            force.append(0)
+
+        min_list, max_list, out_list = f.initial_object_separation(object_list)
 
 # Sets initial forces to force.
 
         for l in range(0,len(force)):
             force_prev[l]=force[l]
 
+
+
 # Corrects for centre of mass.
 
-    com_corr(list)
+    f.com_corr(object_list)
 
 
 # Main simulation loop:
@@ -161,27 +102,29 @@ def main():
 #5) Updates v of each objects with force and previous force of each object
 #6) Sets force to previous force
 
+    integration.time_integration (steps, object_list, traj_file, object_number, prev_pos_list, dt, force, min_list, max_list, angle_list, force_sum, force_prev, energy_file, energy_list, time_list)
 
-    for i in range (0, 200):
-        trajectory (list, traj_file, i+1, 3)
-
-        update_position(list, dt, force)
-
-        for j in range (0, len(list)):
-            force_sum=np.array((0,0,0), float) #used to sum forces for individual objects
-            for k in range (0, len(list)):
-                if k == j:
-                    force_sum=force_sum
-                else:
-                    force_sum = force_sum + gravitational_force(list[j], list[k])
+    print(angle_list[1])
+    for i in range(len(angle_list)):
+        period_list.append(steps / (np.rad2deg(angle_list[i]) / 360))
 
 
-            force[j] = force_sum
 
-        update_velocity(list, dt, force_prev, force)
+    for i in range (0, len(out_list)):
+        observables_file.write(str(out_list[i]) + "\n")
+        observables_file.write("Minimum Distance: " + str(min_list[i]) + "\n")
+        observables_file.write("Maximum Distance: " + str(max_list[i]) + "\n")
+        observables_file.write("Orbital Period: " + str(period_list[i]) + "\n")
+        observables_file.write("\n")
 
-        for l in range(0,len(force)):
-            force_prev[l]=force[l]
+    # Plot system energy to screen
+
+
+    pyplot.title('Solar system: total energy vs time')
+    pyplot.xlabel('Time')
+    pyplot.ylabel('Total Energy')
+    pyplot.plot(time_list, energy_list)
+    pyplot.show()
 
 
 main()
