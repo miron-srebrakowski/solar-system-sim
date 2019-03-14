@@ -4,7 +4,7 @@ project.py contains the main body of the code and calls the two other files
 integration.py contains a function to perform velocity verlet time integration
 functions.py contains a set of functions used within the main body for various calculations and within
                       the integration file
-particle3D contains the code creating the objects used within the main body
+particle3D.py contains the code creating the objects used within the main body
 param contains the parameters for the simulation
 initial contains the initial conditions for each of the 12 bodies to be included in the simulation
 
