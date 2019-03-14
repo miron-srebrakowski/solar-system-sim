@@ -1,0 +1,239 @@
+from Particle3D import Particle3D
+import math
+import numpy as np
+
+def energy_potential(p1,p2):
+    '''
+    Method calculating the gravitiational potential energy between 2 Particle3D objects.
+    Ep = -GMm/r
+
+    :param p1: Particle 3D object
+    :param p2: Particle 3D object
+    :return: potential energy (float)
+    '''
+
+    sep= np.linalg.norm(Particle3D.vector_separation(p1,p2))
+    pot=-1.4881e-34*p1.mass*p2.mass/sep
+
+    return pot
+
+
+def gravitational_force(p1,p2):
+    '''
+    Method calculating the gravitational force vector
+    between 2 Particle3D objects.
+
+    F = -GMm/r^2 *r/|r|
+
+    :param p1: Particle 3D object
+    :param p2: Particle 3D object
+    :return: force vector (Numpy array)
+    '''
+    sep = np.linalg.norm(Particle3D.vector_separation(p1,p2))
+
+    force = (-1.4881e-34*p1.mass*p2.mass)/(sep)**2
+
+    force_vec = (force/sep)*(p1.position-p2.position)
+
+    return force_vec
+
+
+def update_velocity (objects, dt, force_old, force_new):
+    '''
+    Method updates velocity of all Particle3D objects in a list using
+    the velocity Verlet method.
+
+    :param objects: list of Particle3D objects
+    :param dt: time step (float)
+    :param force_old: list of previous force vectors (Numpy arrays)
+    :param force_new: list of new force vectors (Numpy arrays)
+    '''
+
+    for i in range (0, len(objects)):
+        objects[i].leap_velocity(dt, 0.5 * (force_old[i] + force_new[i]))
+
+
+def update_position (objects, dt,force):
+    """
+    Method updates the position of all the objects in the list usig a newly
+    calculated force.
+
+    :param objects: list of Particle3D objects
+    :param dt: time step size (float)
+    :param force: list of new force vectors (Numpy arrays)
+    """
+
+    for i in range (0, len(objects)):
+        objects[i].leap_pos2nd(dt,force[i])
+
+
+def energy_total (objects):
+    '''
+    Method calculating the total energy of the system.
+    Total = Potential + Kinetic
+
+    :param objects: list of Particle3D objects
+    :return total: total energy of system (float)
+    '''
+
+    total = 0
+
+    #Calculates the kinetic energy of an object
+    for i in range (0, len(objects)):
+        e_kin = objects[i].kinetic_energy()
+
+        #Calculates the potential energy of an object.
+        for j in range (i+1, len(objects)):
+            e_pot = energy_potential(objects[i], objects[j])
+
+            #Sums the kinetic and potential and adds to a system total.
+            e_tot = e_kin + e_pot
+
+            total = total + e_tot
+
+    return total
+
+
+def com_corr (objects):
+    """
+    Corrects the velocities of the objects for the initial drift of centre of
+    mass of the system.
+    v_corr = v - v_com
+
+    :param objects: list of Particle3D objects
+    """
+
+    mv = 0
+    mass = 0
+
+    #Calculates the velocity of the centre of mass.
+    for i in range (0, len(objects)):
+        mv = mv + (objects[i].mass * objects[i].velocity)
+        mass = mass + objects[i].mass
+
+    v_com = mv/mass
+
+    #Corrects the velocities of the objects.
+    for i in range (0, len(objects)):
+        objects[i].velocity = objects[i].velocity - v_com
+
+
+
+def trajectory (objects, file, p_curr, p_tot):
+    """
+    Method writes out position data of each object in the list to a Trajectory
+    file for visualisation.
+    Format:
+    <number of objects>
+    Point = <current time step>
+    <name_1> <x1_pos> <y1_pos> <z1_pos>
+    ...
+    <name_n> <xn_pos> <yn_pos> <zn_pos>
+
+    :param objects: list of Particle3D objects
+    :param file: trajectory file name (file handle)
+    :param p_curr: current time step (float)
+    :param p_tot: total number of objects (float)
+    """
+
+    file.write(str(p_tot) + "\n")
+    file.write("Point = " + str(p_curr) +" " + "\n")
+
+    for i in range (0, len(objects)):
+        file.write(objects[i].__str__() + "\n")
+
+def initial_object_separation(objects):
+    """
+    Method determining the initial position of each objects relative to the Sun
+    and the Moon relative to the Earth.
+
+    :param objects: list of Particle3D objects
+    :return min_list: list containing the initial relative minimum distances (float)
+    :return max_list: list containing the initial relative maximum distances (float)
+    :return out_list: list containing indications of which distance is being measured (str)
+    """
+
+    #Initialises empty lists.
+    min_list = []
+    max_list = []
+    out_list = []
+
+    for i in range(0, len(objects)):
+        for j in range(i + 1, len(objects)):
+
+            if objects[i].label == 'Sun':
+                out_list.append(str(objects[i].label) + "-" + str(objects[j].label + ": "))
+                initial_sep = np.linalg.norm(Particle3D.vector_separation(objects[i], objects[j]))
+                min_list.append(initial_sep)
+                max_list.append(initial_sep)
+
+            if objects[i].label == 'Earth' and objects[j].label == 'Moon':
+                out_list.append(str(objects[i].label) + "-" + str(objects[j].label + ": "))
+                initial_sep = np.linalg.norm(Particle3D.vector_separation(objects[i], objects[j]))
+                min_list.append(initial_sep)
+                max_list.append(initial_sep)
+
+    return min_list, max_list, out_list
+
+
+def object_separation (objects, min_list, max_list):
+    """
+    Method calculates the apo- and periapses of the solar orbits of
+    all objects in the list and the Moons orbit around the Eatrh, by finding the
+    relative distances at each time step and replacing them in the min/max list
+    if they are smaller/larger than the value calculated in the previous time step.
+
+    :param objects: list of Particle3D objects
+    :param min_list: list containing the initial relative minimum distances (float)
+    :param max_list: list containing the initial relative maximum distances (float)
+
+    :return min_list: list containing the perapsis of the solar orbit of each object in the system
+    :return max_list: list containing the apsis of the solar orbit of each object in the system
+    """
+
+    for i in range (0, len(objects)):
+        for j in range (i+1, len(objects)):
+
+            if objects[i].label == 'Sun':
+
+
+                separation = np.linalg.norm(Particle3D.vector_separation(objects[i], objects[j]))
+
+                if separation > max_list[j-1]:
+                    max_list[j-1] = separation
+
+                if separation < min_list[j-1]:
+                    min_list[j-1] = separation
+
+            if objects[i].label == 'Earth' and objects[j].label == 'Moon':
+                separation = np.linalg.norm(Particle3D.vector_separation(objects[i], objects[j]))
+
+                if separation > max_list[j-1]:
+                    max_list[j-1] = separation
+
+                if separation < min_list[j-1]:
+                    min_list[j-1] = separation
+
+    return min_list, max_list
+
+def angle_covered (objects, prev_pos_list, angle_list):
+
+    for i in range(0, len(objects)):
+        for j in range (i+1, len(objects)):
+
+            if objects[i].label == 'Sun':
+                A = np.linalg.norm(objects[j].position - prev_pos_list[j-1])
+                B = np.linalg.norm(objects[j].position)
+                C = np.linalg.norm(prev_pos_list[j-1])
+                angle_list[j-1] += np.arccos((B**2 + C**2 - A**2) / (2*B*C))
+
+            if objects[i].label == 'Earth' and objects[j].label == 'Moon':
+                vector_a = prev_pos_list[i] - prev_pos_list[j]
+                vector_b = Particle3D.vector_separation(objects[i], objects[j])
+                mag_a = np.linalg.norm(vector_a)
+                mag_b = np.linalg.norm(vector_b)
+
+                angle_list[len(angle_list)-1] += np.arccos((np.linalg.norm(np.dot(vector_a, vector_b)) / (mag_a * mag_b)))
+
+
+    return angle_list
