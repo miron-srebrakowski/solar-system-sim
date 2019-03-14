@@ -1,14 +1,19 @@
+"""
+Program contianing the main time integration loop of the simulation. The loop uses the velocity verlet time
+integration method to update the position of each object in a list and writes out the new position to a
+trajectory file for visualisation in VMD.
+"""
+
 from Particle3D import Particle3D
 import math
 import numpy as np
 import functions as f
 
-
 def time_integration (steps, object_list, traj_file, object_number, prev_pos_list, dt, force, min_list, max_list, angle_list, force_sum, force_prev, energy_file, energy_list, time_list):
 
     for t in range (0, steps):
 
-        #Prints positions to trajectory file
+        #Prints current positions to trajectory file
 
         f.trajectory (object_list, traj_file, t+1, object_number)
 
@@ -22,15 +27,14 @@ def time_integration (steps, object_list, traj_file, object_number, prev_pos_lis
         #Calculates the total energy of the system and outputs it to the
         #energy file and energy list for graphing.
 
-
         energy_file.write(str(f.energy_total(object_list)) + "\n")
         energy_list.append(f.energy_total(object_list))
         time_list.append(t*dt)
 
         min_list, max_list = f.object_separation(object_list, min_list, max_list)
         f.angle_covered(object_list, prev_pos_list, angle_list)
-        #Loop calculating the new force on each object.
 
+        #Loop calculating the new force on each object.
 
         for j in range (0, len(object_list)):
             force_sum=np.array((0,0,0), float) #used to sum forces for individual objects
@@ -43,14 +47,11 @@ def time_integration (steps, object_list, traj_file, object_number, prev_pos_lis
 
             force[j] = force_sum
 
-
         #Updates velocity of all objects given new force.
 
         f.update_velocity(object_list, dt, force_prev, force)
 
-
         #Sets newly calculated force as old force.
-
 
         for l in range(0,len(force)):
             force_prev[l]=force[l]
